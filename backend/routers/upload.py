@@ -71,4 +71,4 @@ async def upload_document(
         raise he
     except Exception as e:
         logger.error(f"Upload endpoint error: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error during document processing.")
+        raise HTTPException(status_code=500, detail=str(e))
