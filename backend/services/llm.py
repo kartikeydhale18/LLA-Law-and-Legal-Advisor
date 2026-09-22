@@ -47,7 +47,7 @@ def extract_text_from_image(image_bytes: bytes, mime_type: str = "image/jpeg"):
     Uses Gemini's vision capability to extract text from an uploaded document (image/pdf).
     """
     try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel('gemini-3.6-flash')
         
         prompt = "Extract all the text from this document accurately. Preserve the formatting where possible. If it's a contract or legal document, ensure all clauses are clearly separated."
         
@@ -94,7 +94,7 @@ def generate_answer(prompt: str, context: str = "", model_choice: str = "groq"):
             return completion.choices[0].message.content
         else:
             # Fallback to Gemini
-            gemini_model = genai.GenerativeModel('gemini-2.5-flash', system_instruction=system_prompt)
+            gemini_model = genai.GenerativeModel('gemini-3.6-flash', system_instruction=system_prompt)
             response = gemini_model.generate_content(full_prompt)
             return response.text
     except Exception as e:
