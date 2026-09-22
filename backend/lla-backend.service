@@ -1,0 +1,19 @@
+[Unit]
+Description=Gunicorn instance to serve LLA FastAPI application
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/LLA/backend
+Environment="PATH=/home/ubuntu/LLA/backend/venv/bin"
+# Update these environment variables with real values or load from an .env file
+EnvironmentFile=/home/ubuntu/LLA/backend/.env
+ExecStart=/home/ubuntu/LLA/backend/venv/bin/gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker -b 127.0.0.1:8000
+
+# Restart behavior
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
