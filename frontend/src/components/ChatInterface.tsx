@@ -32,7 +32,8 @@ export default function ChatInterface() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const response = await axios.post(`${apiUrl}/api/chat`, {
         query: userMessage.content,
-        use_rag: true
+        use_rag: true,
+        namespace: "test_user"
       });
       
       setMessages(prev => [...prev, { role: 'assistant', content: response.data.answer }]);
