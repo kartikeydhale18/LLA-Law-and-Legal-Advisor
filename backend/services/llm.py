@@ -46,17 +46,28 @@ def extract_text_from_image(image_bytes: bytes, mime_type: str = "image/jpeg"):
     """
     Uses Gemini's vision capability to extract text from an uploaded document (image/pdf).
     """
-    try:
-        model = genai.GenerativeModel('gemini-3.6-flash')
-        
-        prompt = "Extract all the text from this document accurately. Preserve the formatting where possible. If it's a contract or legal document, ensure all clauses are clearly separated."
-        
-        response = model.generate_content([
-            {'mime_type': mime_type, 'data': image_bytes},
-            prompt
-        ])
-        
-        return response.text
+    import time
+    
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            model = genai.GenerativeModel('gemini-3.6-flash')
+            
+            prompt = "Extract all the text from this document accurately. Preserve the formatting where possible. If it's a contract or legal document, ensure all clauses are clearly separated."
+            
+            response = model.generate_content([
+                {'mime_type': mime_type, 'data': image_bytes},
+                prompt
+            ])
+            
+            return response.text
+        except Exception as e:
+            if "429" in str(e) and attempt < max_retries - 1:
+                logger.warning(f"Rate limit hit, retrying in 15 seconds... (Attempt {attempt + 1})")
+                time.sleep(15)
+            else:
+                logger.error(f"Failed to extract text using Gemini Vision: {e}")
+                raise e
     except Exception as e:
         logger.error(f"Failed to extract text using Gemini Vision: {e}")
         raise
@@ -95,8 +106,19 @@ def generate_answer(prompt: str, context: str = "", model_choice: str = "groq"):
         else:
             # Fallback to Gemini
             gemini_model = genai.GenerativeModel('gemini-3.6-flash', system_instruction=system_prompt)
-            response = gemini_model.generate_content(full_prompt)
-            return response.text
+            
+            import time
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    response = gemini_model.generate_content(full_prompt)
+                    return response.text
+                except Exception as e:
+                    if "429" in str(e) and attempt < max_retries - 1:
+                        logger.warning(f"Rate limit hit in chat fallback, retrying in 15s... (Attempt {attempt + 1})")
+                        time.sleep(15)
+                    else:
+                        raise e
     except Exception as e:
         logger.error(f"Failed to generate answer: {e}")
         raise
