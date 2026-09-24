@@ -68,9 +68,6 @@ def extract_text_from_image(image_bytes: bytes, mime_type: str = "image/jpeg"):
             else:
                 logger.error(f"Failed to extract text using Gemini Vision: {e}")
                 raise e
-    except Exception as e:
-        logger.error(f"Failed to extract text using Gemini Vision: {e}")
-        raise
 
 def generate_answer(prompt: str, context: str = "", model_choice: str = "groq"):
     """
