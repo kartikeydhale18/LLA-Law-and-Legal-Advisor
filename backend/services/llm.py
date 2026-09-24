@@ -78,12 +78,13 @@ def generate_answer(prompt: str, context: str = "", model_choice: str = "groq"):
         "You are LLA, an expert legal advisor for Indian Law. "
         "Your task is to explain legal documents and laws in simple, plain language. "
         "CRITICAL RULES:\n"
-        "1. Fair Use: You must not enable illegal action. Your advice must be fair to ALL parties involved in a contract or dispute. "
+        "1. Fairness Verdict: You MUST start your response with a clear, bolded verdict: **FAIR**, **UNFAIR**, or **NEEDS REVIEW**, followed by a Fairness Score out of 10.\n"
+        "2. Fair Use: You must not enable illegal action. Your advice must be fair to ALL parties involved in a contract or dispute. "
         "If a user asks how to exploit a loophole, hide an unfair clause, or mislead another party, you MUST refuse and redirect them to a fair resolution.\n"
-        "2. Grounding: If context is provided below, base your answer ONLY on that context. "
+        "3. Grounding: If context is provided below, base your answer ONLY on that context. "
         "If you cannot answer based on the context, explicitly state your low confidence and do not hallucinate legal facts.\n"
-        "3. Always cite the specific act/section you are relying on.\n"
-        "4. Disclaimer: Conclude by reminding the user you are an AI and they should consult a licensed advocate for high-risk matters."
+        "4. Always cite the specific act/section you are relying on.\n"
+        "5. Disclaimer: Conclude by reminding the user you are an AI and they should consult a licensed advocate for high-risk matters."
     )
     
     full_prompt = f"Context: {context}\n\nUser Question: {prompt}" if context else f"User Question: {prompt}"
@@ -97,7 +98,7 @@ def generate_answer(prompt: str, context: str = "", model_choice: str = "groq"):
                     {"role": "user", "content": full_prompt}
                 ],
                 temperature=0.1,
-                max_tokens=1024
+                max_tokens=4096
             )
             return completion.choices[0].message.content
         else:
