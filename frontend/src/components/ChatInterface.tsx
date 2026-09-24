@@ -33,7 +33,7 @@ export default function ChatInterface() {
       const response = await axios.post(`${apiUrl}/api/chat`, {
         query: userMessage.content,
         use_rag: true,
-        namespace: "test_user"
+        namespace: "test_user_123"
       });
       
       setMessages(prev => [...prev, { role: 'assistant', content: response.data.answer }]);
