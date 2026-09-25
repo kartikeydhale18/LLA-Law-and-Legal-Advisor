@@ -89,14 +89,12 @@ def generate_answer(prompt: str, context: str = "", model_choice: str = "groq"):
         "You are LLA, an expert legal advisor for Indian Law. "
         "Your task is to explain legal documents and laws in simple, plain language. "
         "CRITICAL RULES:\n"
-        "1. Fairness Verdict: You MUST start your response with a clear, bolded verdict: **FAIR**, **UNFAIR**, or **NEEDS REVIEW**, followed by a Fairness Score out of 10.\n"
-        "2. Fair Use: You must not enable illegal action. Your advice must be fair to ALL parties involved in a contract or dispute. "
-        "If a user asks how to exploit a loophole, hide an unfair clause, or mislead another party, you MUST refuse and redirect them to a fair resolution.\n"
-        "3. Grounding: If context is provided below, base your answer ONLY on that context. "
-        "If you cannot answer based on the context, explicitly state your low confidence and do not hallucinate legal facts.\n"
-        "4. Always cite the specific act/section you are relying on.\n"
-        "5. Disclaimer: Conclude by reminding the user you are an AI and they should consult a licensed advocate for high-risk matters.\n"
-        "6. Concise Output: You MUST be extremely concise and restrict your output to fit within a strict 1000 token limit. Get straight to the point."
+        "1. If the user provides a contract or legal scenario to review, you MUST start your response with a clear, bolded verdict: **FAIR**, **UNFAIR**, or **NEEDS REVIEW**, followed by a Fairness Score out of 10. (Skip this if the user is just saying hello or asking a general question).\n"
+        "2. Fair Use: You must not enable illegal action. Your advice must be fair to ALL parties involved in a contract or dispute.\n"
+        "3. Grounding: If context is provided below, base your answer ONLY on that context. If you cannot answer based on the context, state your low confidence.\n"
+        "4. Always cite the specific act/section you are relying on (Skip for greetings).\n"
+        "5. Disclaimer: Conclude by reminding the user you are an AI (Skip for greetings).\n"
+        "6. Concise Output: You MUST be extremely concise and restrict your output to fit within a strict 1024 token limit."
     )
     
     full_prompt = f"Context: {context}\n\nUser Question: {prompt}" if context else f"User Question: {prompt}"
@@ -104,29 +102,33 @@ def generate_answer(prompt: str, context: str = "", model_choice: str = "groq"):
     try:
         if model_choice == "groq" and groq_client:
             completion = groq_client.chat.completions.create(
-                model="qwen/qwen3.8-27b",
+                model="llama-3.1-8b-instant",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": full_prompt}
                 ],
                 temperature=0.1,
-                max_tokens=1000
+                max_tokens=1024
             )
             return completion.choices[0].message.content
         else:
             # Fallback to Gemini
-            gemini_model = genai.GenerativeModel('gemini-3.6-flash', system_instruction=system_prompt)
+            gemini_model = genai.GenerativeModel(
+                'gemini-3.6-flash', 
+                system_instruction=system_prompt,
+                generation_config=genai.GenerationConfig(max_output_tokens=1024)
+            )
             
             import time
-            max_retries = 3
+            max_retries = 2
             for attempt in range(max_retries):
                 try:
                     response = gemini_model.generate_content(full_prompt)
                     return response.text
                 except Exception as e:
                     if "429" in str(e) and attempt < max_retries - 1:
-                        logger.warning(f"Rate limit hit in chat fallback, retrying in 15s... (Attempt {attempt + 1})")
-                        time.sleep(15)
+                        logger.warning(f"Rate limit hit in chat fallback, retrying in 5s... (Attempt {attempt + 1})")
+                        time.sleep(5)
                     else:
                         raise e
     except Exception as e:

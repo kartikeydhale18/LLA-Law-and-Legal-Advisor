@@ -12,8 +12,11 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load environment variables
-load_dotenv()
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from the parent directory
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):

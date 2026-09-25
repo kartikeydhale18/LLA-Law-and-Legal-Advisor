@@ -18,6 +18,7 @@ export default function Home() {
 
   const [language, setLanguage] = useState<'EN'|'HI'>('EN');
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [currentChatId, setCurrentChatId] = useState<string>('default');
   
   const t = translations[language];
 
@@ -124,8 +125,14 @@ export default function Home() {
         ) : user ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-140px)]">
             {/* Left Sidebar: Chat History */}
-            <div className="hidden lg:block lg:col-span-3">
-              <ChatSidebar user={user} language={language} />
+            <div className="hidden lg:block lg:col-span-3 h-full">
+              <ChatSidebar 
+                user={user} 
+                language={language} 
+                currentChatId={currentChatId}
+                onSelectChat={setCurrentChatId}
+                onNewChat={() => setCurrentChatId(Date.now().toString())}
+              />
             </div>
 
             {/* Middle Column: Context / Upload */}
@@ -141,7 +148,7 @@ export default function Home() {
 
             {/* Right Column: Chat */}
             <div className="lg:col-span-6 h-full bg-white dark:bg-[#0f172a] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col">
-              <ChatInterface user={user} language={language} />
+              <ChatInterface user={user} language={language} chatId={currentChatId} />
             </div>
           </div>
         ) : (

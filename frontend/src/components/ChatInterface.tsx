@@ -19,9 +19,10 @@ interface Message {
 interface ChatProps {
   user?: User | null;
   language?: 'EN' | 'HI';
+  chatId?: string;
 }
 
-export default function ChatInterface({ user, language = 'EN' }: ChatProps) {
+export default function ChatInterface({ user, language = 'EN', chatId = 'default' }: ChatProps) {
   const t = translations[language];
 
   const initialMessage = language === 'HI' 
@@ -59,7 +60,7 @@ export default function ChatInterface({ user, language = 'EN' }: ChatProps) {
   // Load chat history from Firestore
   useEffect(() => {
     if (!user) return;
-    const q = query(collection(db, `users/${user.uid}/messages`), orderBy('createdAt', 'asc'));
+    const q = query(collection(db, `users/${user.uid}/chats/${chatId}/messages`), orderBy('createdAt', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const history: Message[] = [];
       snapshot.forEach((doc) => {
@@ -67,27 +68,16 @@ export default function ChatInterface({ user, language = 'EN' }: ChatProps) {
       });
       if (history.length > 0) {
         setMessages(history);
+      } else {
+        setMessages([{ role: 'assistant', content: initialMessage }]);
       }
     });
     return () => unsubscribe();
-  }, [user]);
-
-  const clearChat = async () => {
-    if (!user) return;
-    const q = query(collection(db, `users/${user.uid}/messages`));
-    const snapshot = await getDocs(q);
-    snapshot.forEach(async (docSnap) => {
-      await deleteDoc(docSnap.ref);
-    });
-    setMessages([{
-      role: 'assistant',
-      content: initialMessage
-    }]);
-  };
+  }, [user, chatId, initialMessage]);
 
   const saveMessage = async (msg: Message) => {
     if (!user) return;
-    await addDoc(collection(db, `users/${user.uid}/messages`), {
+    await addDoc(collection(db, `users/${user.uid}/chats/${chatId}/messages`), {
       ...msg,
       createdAt: serverTimestamp()
     });
@@ -148,16 +138,6 @@ export default function ChatInterface({ user, language = 'EN' }: ChatProps) {
             <strong>{t.disclaimerStrong1}</strong> {language === 'HI' ? "LLA कानूनी अवधारणाओं को समझने में आपकी मदद करने के लिए एक AI सहायक है। यह" : "LLA is an AI assistant to help you understand legal concepts. It is"} <strong>{t.disclaimerStrong2}</strong>. {language === 'HI' ? "उच्च जोखिम वाले या जटिल कानूनी मामलों के लिए, कृपया एक पेशेवर वकील से परामर्श लें।" : "For high-risk or complex legal matters, please consult a professional lawyer."}
           </p>
         </div>
-        {user && (
-          <button 
-            onClick={clearChat}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors border border-transparent hover:border-red-200 dark:hover:border-red-900/50"
-            title="Clear Chat History"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span className="hidden sm:inline">{t.clear}</span>
-          </button>
-        )}
       </div>
 
       {/* Chat Area */}
