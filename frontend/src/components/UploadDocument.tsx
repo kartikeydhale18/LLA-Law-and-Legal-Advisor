@@ -7,7 +7,7 @@ import axios from 'axios';
 
 import { User } from 'firebase/auth';
 import { db } from '../lib/firebase';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { translations } from '@/lib/i18n';
 
 interface UploadProps {
@@ -22,6 +22,7 @@ interface DocumentInfo {
   size: number;
   uploadedAt: any;
   s3_url?: string;
+  tags?: string[];
 }
 
 export default function UploadDocument({ onUploadSuccess, user, language = 'EN' }: UploadProps) {
@@ -32,6 +33,7 @@ export default function UploadDocument({ onUploadSuccess, user, language = 'EN' 
   const [success, setSuccess] = useState(false);
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [tagInput, setTagInput] = useState<{ [key: string]: string }>({});
 
   const t = translations[language];
 
@@ -56,6 +58,29 @@ export default function UploadDocument({ onUploadSuccess, user, language = 'EN' 
       await deleteDoc(doc(db, `users/${user.uid}/documents`, docId));
     } catch (err) {
       console.error("Failed to delete document record", err);
+    }
+  };
+
+  const handleAddTag = async (docId: string, tag: string) => {
+    if (!user || !tag.trim()) return;
+    try {
+      await updateDoc(doc(db, `users/${user.uid}/documents`, docId), {
+        tags: arrayUnion(tag.trim().toLowerCase())
+      });
+      setTagInput(prev => ({ ...prev, [docId]: '' }));
+    } catch (err) {
+      console.error("Failed to add tag", err);
+    }
+  };
+
+  const handleRemoveTag = async (docId: string, tag: string) => {
+    if (!user) return;
+    try {
+      await updateDoc(doc(db, `users/${user.uid}/documents`, docId), {
+        tags: arrayRemove(tag)
+      });
+    } catch (err) {
+      console.error("Failed to remove tag", err);
     }
   };
 
@@ -229,17 +254,40 @@ export default function UploadDocument({ onUploadSuccess, user, language = 'EN' 
           <div className="flex flex-col gap-3">
             {documents.map((docItem) => (
               <div key={docItem.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <FileText className="w-5 h-5 text-blue-500 flex-shrink-0" />
-                  <div className="truncate">
-                    {docItem.s3_url ? (
-                      <a href={docItem.s3_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline truncate block">
-                        {docItem.name}
-                      </a>
-                    ) : (
-                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{docItem.name}</p>
-                    )}
-                    <p className="text-xs text-slate-500">{(docItem.size / 1024 / 1024).toFixed(2)} MB</p>
+                <div className="flex flex-col gap-2 flex-grow min-w-0 pr-4">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <FileText className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                    <div className="truncate">
+                      {docItem.s3_url ? (
+                        <a href={docItem.s3_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline truncate block">
+                          {docItem.name}
+                        </a>
+                      ) : (
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{docItem.name}</p>
+                      )}
+                      <p className="text-xs text-slate-500">{(docItem.size / 1024 / 1024).toFixed(2)} MB</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    {docItem.tags?.map(tag => (
+                      <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                        {tag}
+                        <button onClick={() => handleRemoveTag(docItem.id, tag)} className="hover:text-blue-900 dark:hover:text-blue-100">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                    <input 
+                      type="text" 
+                      placeholder={language === 'HI' ? "टैग जोड़ें..." : "Add tag..."}
+                      className="text-xs px-2 py-1 bg-transparent border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:border-blue-500 w-24"
+                      value={tagInput[docItem.id] || ''}
+                      onChange={(e) => setTagInput(prev => ({...prev, [docItem.id]: e.target.value}))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleAddTag(docItem.id, tagInput[docItem.id]);
+                      }}
+                    />
                   </div>
                 </div>
                 <button 
