@@ -102,7 +102,7 @@ def generate_answer(prompt: str, context: str = "", model_choice: str = "groq"):
     try:
         if model_choice == "groq" and groq_client:
             completion = groq_client.chat.completions.create(
-                model="llama-3.1-8b-instant",
+                model="qwen/qwen3.8-27b",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": full_prompt}

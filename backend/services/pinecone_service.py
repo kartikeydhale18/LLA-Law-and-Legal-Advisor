@@ -21,7 +21,7 @@ def initialize_pinecone():
         
         # Check if index exists, for a real deployment we'd create it if missing,
         # but free tier has limits so usually better created manually.
-        if index_name in [idx.name for idx in pc.list_indexes()]:
+        if index_name in [idx['name'] for idx in pc.list_indexes()]:
             index = pc.Index(index_name)
             logger.info(f"Connected to Pinecone index: {index_name}")
         else:
