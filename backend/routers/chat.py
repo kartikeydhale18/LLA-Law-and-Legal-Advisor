@@ -10,7 +10,7 @@ router = APIRouter()
 
 class ChatRequest(BaseModel):
     query: str
-    namespace: str = "legal_corpus" # Defaults to general corpus
+    namespace: str = "indian_law_corpus" # Defaults to general corpus
     use_rag: bool = True
 
 class ChatResponse(BaseModel):
