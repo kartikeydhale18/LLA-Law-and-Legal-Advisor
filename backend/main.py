@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import os
 from dotenv import load_dotenv
+
+# Load environment variables FIRST, before importing routers/services
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+
 from routers import chat, upload
 from services.firebase import initialize_firebase
 from services.pinecone_service import initialize_pinecone
@@ -11,12 +16,6 @@ import logging
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-import os
-from dotenv import load_dotenv
-
-# Load environment variables from the parent directory
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
