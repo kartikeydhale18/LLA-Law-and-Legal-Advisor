@@ -12,6 +12,7 @@ class ChatRequest(BaseModel):
     query: str
     namespace: str = "indian_law_corpus" # Defaults to general corpus
     use_rag: bool = True
+    language: str = "EN"
 
 class ChatResponse(BaseModel):
     answer: str
@@ -52,7 +53,7 @@ async def chat_endpoint(request: ChatRequest):
             context = "\n---\n".join(context_chunks)
         
         # Generate answer
-        answer = generate_answer(prompt=request.query, context=context)
+        answer = generate_answer(prompt=request.query, context=context, language=request.language)
         
         return ChatResponse(answer=answer)
 

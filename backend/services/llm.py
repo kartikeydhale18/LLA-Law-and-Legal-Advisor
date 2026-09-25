@@ -80,7 +80,7 @@ def extract_text_from_image(image_bytes: bytes, mime_type: str = "image/jpeg"):
                 logger.error(f"Failed to extract text using Gemini Vision: {e}")
                 raise e
 
-def generate_answer(prompt: str, context: str = "", model_choice: str = "groq"):
+def generate_answer(prompt: str, context: str = "", model_choice: str = "groq", language: str = "EN"):
     """
     Generates an answer using the chosen model.
     Includes the fairness rule enforcement in the system prompt.
@@ -96,6 +96,9 @@ def generate_answer(prompt: str, context: str = "", model_choice: str = "groq"):
         "5. Disclaimer: Conclude by reminding the user you are an AI (Skip for greetings).\n"
         "6. Concise Output: You MUST be extremely concise and restrict your output to fit within a strict 1024 token limit."
     )
+    
+    if language == "HI":
+        system_prompt += "\n7. Language: You MUST reply entirely in Hindi (देवनागरी). Translate all legal terms accurately."
     
     full_prompt = f"Context: {context}\n\nUser Question: {prompt}" if context else f"User Question: {prompt}"
 

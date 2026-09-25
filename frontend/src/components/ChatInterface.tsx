@@ -103,7 +103,8 @@ export default function ChatInterface({ user, language = 'EN', chatId = 'default
       const response = await axios.post(`${apiUrl}/api/chat`, {
         query: userMessage.content,
         use_rag: true,
-        namespace: namespace
+        namespace: namespace,
+        language: language
       });
       
       const aiMessage: Message = { role: 'assistant', content: response.data.answer };
