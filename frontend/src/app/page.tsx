@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Moon, Sun, Globe } from "lucide-react";
 import ChatInterface from '@/components/ChatInterface';
 import UploadDocument from '@/components/UploadDocument';
+import ChatSidebar from '@/components/ChatSidebar';
 import AuthModal from '@/components/AuthModal';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
@@ -115,16 +116,21 @@ export default function Home() {
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
 
       {/* Main Content */}
-      <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8 flex flex-col h-full">
+      <main className="flex-1 w-full max-w-[1400px] mx-auto p-4 md:p-8 flex flex-col h-full">
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : user ? (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-140px)]">
-            {/* Left Column: Context / Upload */}
-            <div className="lg:col-span-4 flex flex-col gap-6">
-              <div className="glassmorphism p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-140px)]">
+            {/* Left Sidebar: Chat History */}
+            <div className="hidden lg:block lg:col-span-3">
+              <ChatSidebar user={user} language={language} />
+            </div>
+
+            {/* Middle Column: Context / Upload */}
+            <div className="lg:col-span-3 flex flex-col gap-6">
+              <div className="glassmorphism p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 h-full overflow-y-auto">
                 <h2 className="text-xl font-semibold mb-2">{t.welcome}</h2>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
                   {t.uploadDesc}
@@ -134,7 +140,7 @@ export default function Home() {
             </div>
 
             {/* Right Column: Chat */}
-            <div className="lg:col-span-8 h-full bg-white dark:bg-[#0f172a] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col">
+            <div className="lg:col-span-6 h-full bg-white dark:bg-[#0f172a] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col">
               <ChatInterface user={user} language={language} />
             </div>
           </div>
