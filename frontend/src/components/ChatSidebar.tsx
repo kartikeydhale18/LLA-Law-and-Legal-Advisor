@@ -37,7 +37,7 @@ export default function ChatSidebar({ user, language = 'EN' }: ChatSidebarProps)
               <MessageSquare className="w-4 h-4 text-blue-500 flex-shrink-0" />
               <div className="truncate flex-1">
                 <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">
-                  {session.title}
+                  {session.id === '1' ? (language === 'HI' ? 'वर्तमान चैट' : 'Current Chat') : session.title}
                 </p>
                 <p className="text-xs text-slate-500">{session.date}</p>
               </div>

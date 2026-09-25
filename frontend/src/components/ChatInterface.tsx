@@ -46,6 +46,16 @@ export default function ChatInterface({ user, language = 'EN' }: ChatProps) {
     scrollToBottom();
   }, [messages]);
 
+  // Update initial message when language changes
+  useEffect(() => {
+    if (messages.length === 1 && (
+      messages[0].content === 'Hello! I am LLA, your legal advisor. How can I help you understand Indian law or a contract today?' ||
+      messages[0].content === 'नमस्ते! मैं LLA हूँ, आपका कानूनी सलाहकार। मैं आज भारतीय कानून या अनुबंध को समझने में आपकी कैसे मदद कर सकता हूँ?'
+    )) {
+      setMessages([{ role: 'assistant', content: initialMessage }]);
+    }
+  }, [language, initialMessage]);
+
   // Load chat history from Firestore
   useEffect(() => {
     if (!user) return;
