@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Moon, Sun, Globe } from "lucide-react";
 import ChatInterface from '@/components/ChatInterface';
 import UploadDocument from '@/components/UploadDocument';
 import AuthModal from '@/components/AuthModal';
@@ -11,6 +12,16 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(true);
+
+  // Apply dark mode class to html element
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -33,14 +44,34 @@ export default function Home() {
           </h1>
         </div>
         <div className="flex items-center gap-4">
+          {/* Settings / Preferences */}
+          <div className="flex items-center gap-2 border-r border-slate-200 dark:border-slate-800 pr-4">
+            <button 
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              title="Toggle Theme"
+            >
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+            <div className="relative group">
+              <button 
+                className="p-2 flex items-center gap-1 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                title="Change Language"
+              >
+                <Globe className="w-5 h-5" />
+                <span className="text-xs font-medium uppercase hidden sm:block">EN</span>
+              </button>
+            </div>
+          </div>
+
           {loading ? (
             <div className="w-20 h-6 bg-slate-800 animate-pulse rounded"></div>
           ) : user ? (
             <div className="flex items-center gap-4">
-              <span className="text-sm text-slate-400 hidden sm:inline-block">{user.email}</span>
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400 hidden sm:inline-block">{user.email}</span>
               <button 
                 onClick={() => signOut(auth)}
-                className="text-sm font-medium text-slate-300 hover:text-white transition-colors"
+                className="text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-red-500 transition-colors"
               >
                 Logout
               </button>

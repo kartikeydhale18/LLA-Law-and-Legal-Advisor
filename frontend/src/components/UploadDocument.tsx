@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Upload, X, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import axios from 'axios';
@@ -19,6 +19,7 @@ interface DocumentInfo {
   name: string;
   size: number;
   uploadedAt: any;
+  s3_url?: string;
 }
 
 export default function UploadDocument({ onUploadSuccess, user }: UploadProps) {
@@ -111,17 +112,20 @@ export default function UploadDocument({ onUploadSuccess, user }: UploadProps) {
       const token = user ? await user.getIdToken() : "mock_token"; 
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      await axios.post(`${apiUrl}/api/upload`, formData, {
+      const response = await axios.post(`${apiUrl}/api/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`
         }
       });
 
+      const s3Url = response.data?.s3_url;
+
       if (user) {
         await addDoc(collection(db, `users/${user.uid}/documents`), {
           name: file.name,
           size: file.size,
+          s3_url: s3Url || null,
           uploadedAt: serverTimestamp()
         });
       }
@@ -224,7 +228,13 @@ export default function UploadDocument({ onUploadSuccess, user }: UploadProps) {
                 <div className="flex items-center gap-3 overflow-hidden">
                   <FileText className="w-5 h-5 text-blue-500 flex-shrink-0" />
                   <div className="truncate">
-                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{docItem.name}</p>
+                    {docItem.s3_url ? (
+                      <a href={docItem.s3_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline truncate block">
+                        {docItem.name}
+                      </a>
+                    ) : (
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{docItem.name}</p>
+                    )}
                     <p className="text-xs text-slate-500">{(docItem.size / 1024 / 1024).toFixed(2)} MB</p>
                   </div>
                 </div>
