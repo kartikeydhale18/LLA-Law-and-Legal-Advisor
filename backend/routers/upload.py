@@ -2,6 +2,7 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Header
 from services.firebase import verify_token
 from services.llm import extract_text_from_image, get_embedding
 from services.pinecone_service import store_embeddings
+from services.s3_service import upload_file_to_s3
 import logging
 import uuid
 
@@ -35,22 +36,22 @@ async def upload_document(
     user_id: str = Depends(get_current_user)
 ):
     try:
-        # Validate file size (e.g. limit to 5MB)
-        # Note: FastAPI UploadFile doesn't have size attr before reading, 
-        # so we read and check length.
         content = await file.read()
         if len(content) > 5 * 1024 * 1024:
             raise HTTPException(status_code=400, detail="File too large. Maximum size is 5MB.")
 
-        # 1. Extract text using Gemini Vision OCR
+        # 1. Upload to AWS S3 (Optional, non-blocking if credentials missing)
+        s3_url = await upload_file_to_s3(content, file.filename, file.content_type, user_id)
+
+        # 2. Extract text using Gemini Vision OCR
         extracted_text = extract_text_from_image(content, file.content_type)
         if not extracted_text:
             raise HTTPException(status_code=400, detail="Could not extract text from document.")
 
-        # 2. Chunk text
+        # 3. Chunk text
         chunks = chunk_text(extracted_text, chunk_size=200) # words per chunk
         
-        # 3. Generate embeddings and prepare vectors for Pinecone
+        # 4. Generate embeddings and prepare vectors for Pinecone
         vectors = []
         for i, chunk in enumerate(chunks):
             embedding = get_embedding(chunk)
@@ -58,14 +59,18 @@ async def upload_document(
             vectors.append({
                 "id": vector_id,
                 "values": embedding,
-                "metadata": {"text": chunk, "source": file.filename}
+                "metadata": {"text": chunk, "source": file.filename, "s3_url": s3_url or ""}
             })
             
-        # 4. Store in Pinecone under user's namespace
+        # 5. Store in Pinecone under user's namespace
         if vectors:
             store_embeddings(vectors, namespace=user_id)
             
-        return {"message": "Document processed and stored successfully.", "chunks_processed": len(chunks)}
+        return {
+            "message": "Document processed and stored successfully.", 
+            "chunks_processed": len(chunks),
+            "s3_url": s3_url
+        }
 
     except HTTPException as he:
         raise he
