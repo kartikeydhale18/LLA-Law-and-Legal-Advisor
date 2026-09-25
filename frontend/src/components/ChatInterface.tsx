@@ -1,15 +1,18 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Send, Upload, Info } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Send, Info, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import axios from 'axios';
 
 import { User } from 'firebase/auth';
+import { db } from '../lib/firebase';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, getDocs } from 'firebase/firestore';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  createdAt?: any;
 }
 
 interface ChatProps {
@@ -25,12 +28,63 @@ export default function ChatInterface({ user }: ChatProps) {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Load chat history from Firestore
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, `users/${user.uid}/messages`), orderBy('createdAt', 'asc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const history: Message[] = [];
+      snapshot.forEach((doc) => {
+        history.push(doc.data() as Message);
+      });
+      if (history.length > 0) {
+        setMessages(history);
+      }
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  const clearChat = async () => {
+    if (!user) return;
+    const q = query(collection(db, `users/${user.uid}/messages`));
+    const snapshot = await getDocs(q);
+    snapshot.forEach(async (docSnap) => {
+      await deleteDoc(docSnap.ref);
+    });
+    setMessages([{
+      role: 'assistant',
+      content: 'Hello! I am LLA, your legal advisor. How can I help you understand Indian law or a contract today?'
+    }]);
+  };
+
+  const saveMessage = async (msg: Message) => {
+    if (!user) return;
+    await addDoc(collection(db, `users/${user.uid}/messages`), {
+      ...msg,
+      createdAt: serverTimestamp()
+    });
+  };
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = { role: 'user', content: input };
-    setMessages(prev => [...prev, userMessage]);
+    const userMessage: Message = { role: 'user', content: input.trim() };
+    if (!user) {
+      setMessages(prev => [...prev, userMessage]);
+    } else {
+      await saveMessage(userMessage);
+    }
+    
     setInput('');
     setIsLoading(true);
 
@@ -44,13 +98,23 @@ export default function ChatInterface({ user }: ChatProps) {
         namespace: namespace
       });
       
-      setMessages(prev => [...prev, { role: 'assistant', content: response.data.answer }]);
+      const aiMessage: Message = { role: 'assistant', content: response.data.answer };
+      if (!user) {
+        setMessages(prev => [...prev, aiMessage]);
+      } else {
+        await saveMessage(aiMessage);
+      }
     } catch (error: any) {
       console.error("Chat error:", error);
       const errorMsg = error.response?.data?.detail 
         ? `Error: ${error.response.data.detail}` 
         : 'I encountered an error connecting to the server. Please try again later.';
-      setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
+      const errMessage: Message = { role: 'assistant', content: errorMsg };
+      if (!user) {
+        setMessages(prev => [...prev, errMessage]);
+      } else {
+        await saveMessage(errMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -58,18 +122,30 @@ export default function ChatInterface({ user }: ChatProps) {
 
   return (
     <div className="flex flex-col h-full w-full max-w-4xl mx-auto p-4 md:p-6 gap-4">
-      {/* Disclaimer */}
-      <div className="glassmorphism p-3 rounded-lg flex items-start gap-3 text-sm text-amber-700 dark:text-amber-300">
-        <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
-        <p>
-          <strong>Disclaimer:</strong> LLA is an AI assistant to help you understand legal concepts. 
-          It is <strong>not a substitute for a licensed advocate</strong>. 
-          For high-risk or complex legal matters, please consult a professional lawyer.
-        </p>
+      {/* Disclaimer and Actions */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div className="glassmorphism p-3 rounded-lg flex items-start gap-3 text-sm text-amber-700 dark:text-amber-300 flex-1">
+          <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <p>
+            <strong>Disclaimer:</strong> LLA is an AI assistant to help you understand legal concepts. 
+            It is <strong>not a substitute for a licensed advocate</strong>. 
+            For high-risk or complex legal matters, please consult a professional lawyer.
+          </p>
+        </div>
+        {user && (
+          <button 
+            onClick={clearChat}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors border border-transparent hover:border-red-200 dark:hover:border-red-900/50"
+            title="Clear Chat History"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Clear</span>
+          </button>
+        )}
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 glassmorphism rounded-2xl p-4 overflow-y-auto flex flex-col gap-4 shadow-sm min-h-[400px]">
+      <div className="flex-1 glassmorphism rounded-2xl p-4 overflow-y-auto flex flex-col gap-4 shadow-sm min-h-0">
         {messages.map((msg, i) => (
           <div key={i} className={cn(
             "flex w-full",
@@ -94,6 +170,7 @@ export default function ChatInterface({ user }: ChatProps) {
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}

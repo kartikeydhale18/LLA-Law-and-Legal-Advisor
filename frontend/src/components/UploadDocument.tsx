@@ -6,10 +6,19 @@ import { cn } from '../lib/utils';
 import axios from 'axios';
 
 import { User } from 'firebase/auth';
+import { db } from '../lib/firebase';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
 
 interface UploadProps {
   onUploadSuccess?: () => void;
   user?: User | null;
+}
+
+interface DocumentInfo {
+  id: string;
+  name: string;
+  size: number;
+  uploadedAt: any;
 }
 
 export default function UploadDocument({ onUploadSuccess, user }: UploadProps) {
@@ -18,9 +27,32 @@ export default function UploadDocument({ onUploadSuccess, user }: UploadProps) {
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, `users/${user.uid}/documents`), orderBy('uploadedAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs: DocumentInfo[] = [];
+      snapshot.forEach((docSnap) => {
+        docs.push({ id: docSnap.id, ...docSnap.data() } as DocumentInfo);
+      });
+      setDocuments(docs);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleDelete = async (docId: string) => {
+    if (!user) return;
+    try {
+      await deleteDoc(doc(db, `users/${user.uid}/documents`, docId));
+    } catch (err) {
+      console.error("Failed to delete document record", err);
+    }
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -86,7 +118,16 @@ export default function UploadDocument({ onUploadSuccess, user }: UploadProps) {
         }
       });
 
+      if (user) {
+        await addDoc(collection(db, `users/${user.uid}/documents`), {
+          name: file.name,
+          size: file.size,
+          uploadedAt: serverTimestamp()
+        });
+      }
+
       setSuccess(true);
+      setFile(null);
       if (onUploadSuccess) onUploadSuccess();
     } catch (err: any) {
       console.error("Upload error:", err);
@@ -164,15 +205,41 @@ export default function UploadDocument({ onUploadSuccess, user }: UploadProps) {
       <div className="mt-6 flex justify-end">
         <button
           onClick={handleUpload}
-          disabled={!file || isUploading || success}
+          disabled={!file || isUploading}
           className={cn(
             "px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-all shadow-sm",
-            (!file || isUploading || success) && "opacity-50 cursor-not-allowed"
+            (!file || isUploading) && "opacity-50 cursor-not-allowed"
           )}
         >
           {isUploading ? "Processing..." : "Upload & Analyze"}
         </button>
       </div>
+
+      {documents.length > 0 && (
+        <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
+          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Your Documents</h3>
+          <div className="flex flex-col gap-3">
+            {documents.map((docItem) => (
+              <div key={docItem.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50">
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <FileText className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                  <div className="truncate">
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{docItem.name}</p>
+                    <p className="text-xs text-slate-500">{(docItem.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => handleDelete(docItem.id)}
+                  className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  title="Remove from history"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
