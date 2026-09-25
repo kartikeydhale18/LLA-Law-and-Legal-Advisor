@@ -8,10 +8,12 @@ import axios from 'axios';
 import { User } from 'firebase/auth';
 import { db } from '../lib/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
+import { translations } from '@/lib/i18n';
 
 interface UploadProps {
   onUploadSuccess?: () => void;
   user?: User | null;
+  language?: 'EN' | 'HI';
 }
 
 interface DocumentInfo {
@@ -22,7 +24,7 @@ interface DocumentInfo {
   s3_url?: string;
 }
 
-export default function UploadDocument({ onUploadSuccess, user }: UploadProps) {
+export default function UploadDocument({ onUploadSuccess, user, language = 'EN' }: UploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +32,8 @@ export default function UploadDocument({ onUploadSuccess, user }: UploadProps) {
   const [success, setSuccess] = useState(false);
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const t = translations[language];
 
   const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -69,14 +73,14 @@ export default function UploadDocument({ onUploadSuccess, user }: UploadProps) {
     setSuccess(false);
     
     if (selectedFile.size > MAX_FILE_SIZE) {
-      setError("File is too large. Maximum size allowed is 5MB.");
+      setError(language === 'HI' ? "फ़ाइल बहुत बड़ी है। अधिकतम 5MB की अनुमति है।" : "File is too large. Maximum size allowed is 5MB.");
       setFile(null);
       return;
     }
     
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
     if (!allowedTypes.includes(selectedFile.type)) {
-      setError("Invalid file type. Please upload a PDF, JPG, or PNG.");
+      setError(language === 'HI' ? "अमान्य फ़ाइल प्रकार।" : "Invalid file type. Please upload a PDF, JPG, or PNG.");
       setFile(null);
       return;
     }
@@ -145,7 +149,7 @@ export default function UploadDocument({ onUploadSuccess, user }: UploadProps) {
     <div className="w-full max-w-2xl mx-auto glassmorphism rounded-2xl p-6 shadow-sm">
       <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
         <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-        Analyze Legal Document
+        {t.analyzeTitle}
       </h2>
       
       {!file ? (
@@ -163,8 +167,8 @@ export default function UploadDocument({ onUploadSuccess, user }: UploadProps) {
           aria-label="Upload document area"
         >
           <Upload className="w-10 h-10 mx-auto text-gray-400 mb-4" />
-          <p className="text-sm font-medium mb-1">Click to upload or drag and drop</p>
-          <p className="text-xs text-gray-500">PDF, JPG, or PNG (max. 5MB)</p>
+          <p className="text-sm font-medium mb-1">{t.dragDrop}</p>
+          <p className="text-xs text-gray-500">{t.fileTypes}</p>
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -202,7 +206,7 @@ export default function UploadDocument({ onUploadSuccess, user }: UploadProps) {
       {success && (
         <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm rounded-lg flex items-center gap-2">
           <CheckCircle className="w-5 h-5" />
-          <p>Document uploaded and analyzed successfully! You can now ask questions about it.</p>
+          <p>{language === 'HI' ? "दस्तावेज़ सफलतापूर्वक अपलोड और विश्लेषित किया गया!" : "Document uploaded and analyzed successfully!"}</p>
         </div>
       )}
 
@@ -215,13 +219,13 @@ export default function UploadDocument({ onUploadSuccess, user }: UploadProps) {
             (!file || isUploading) && "opacity-50 cursor-not-allowed"
           )}
         >
-          {isUploading ? "Processing..." : "Upload & Analyze"}
+          {isUploading ? t.uploading : t.uploadBtn}
         </button>
       </div>
 
       {documents.length > 0 && (
         <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800">
-          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Your Documents</h3>
+          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">{t.yourDocs}</h3>
           <div className="flex flex-col gap-3">
             {documents.map((docItem) => (
               <div key={docItem.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50">

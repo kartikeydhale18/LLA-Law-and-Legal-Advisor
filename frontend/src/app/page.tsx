@@ -7,6 +7,7 @@ import UploadDocument from '@/components/UploadDocument';
 import AuthModal from '@/components/AuthModal';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
+import { translations } from '@/lib/i18n';
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
@@ -14,8 +15,10 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(true);
 
-  const [language, setLanguage] = useState('EN');
+  const [language, setLanguage] = useState<'EN'|'HI'>('EN');
   const [showLangMenu, setShowLangMenu] = useState(false);
+  
+  const t = translations[language];
 
   // Apply dark mode class to html element
   useEffect(() => {
@@ -43,7 +46,7 @@ export default function Home() {
             <span className="text-white font-bold text-lg leading-none">L</span>
           </div>
           <h1 className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
-            LLA <span className="font-medium text-slate-500 dark:text-slate-400">| Legal Advisor</span>
+            LLA <span className="font-medium text-slate-500 dark:text-slate-400">| {t.title}</span>
           </h1>
         </div>
         <div className="flex items-center gap-4">
@@ -95,7 +98,7 @@ export default function Home() {
                 onClick={() => signOut(auth)}
                 className="text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-red-500 transition-colors"
               >
-                Logout
+                {t.logout}
               </button>
             </div>
           ) : (
@@ -103,7 +106,7 @@ export default function Home() {
               onClick={() => setShowAuthModal(true)}
               className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
             >
-              Login
+              {t.logIn}
             </button>
           )}
         </div>
@@ -122,17 +125,17 @@ export default function Home() {
             {/* Left Column: Context / Upload */}
             <div className="lg:col-span-4 flex flex-col gap-6">
               <div className="glassmorphism p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
-                <h2 className="text-xl font-semibold mb-2">Welcome to LLA</h2>
+                <h2 className="text-xl font-semibold mb-2">{t.welcome}</h2>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-                  Upload a contract or agreement to get a plain-language explanation and fair legal guidance.
+                  {t.uploadDesc}
                 </p>
-                <UploadDocument user={user} />
+                <UploadDocument user={user} language={language} />
               </div>
             </div>
 
             {/* Right Column: Chat */}
             <div className="lg:col-span-8 h-full bg-white dark:bg-[#0f172a] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col">
-              <ChatInterface user={user} />
+              <ChatInterface user={user} language={language} />
             </div>
           </div>
         ) : (
@@ -141,17 +144,16 @@ export default function Home() {
               L
             </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-6">
-              Your AI Legal Advisor.
+              {t.landingTitle}
             </h2>
             <p className="text-lg text-slate-600 dark:text-slate-400 mb-10 leading-relaxed">
-              Understand complex Indian laws and contracts in simple, plain language. 
-              Upload documents, check for fairness, and get instant answers backed by actual legal code.
+              {t.landingDesc}
             </p>
             <button 
               onClick={() => setShowAuthModal(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl text-lg font-medium transition-all hover:scale-105 hover:shadow-xl shadow-blue-600/20"
             >
-              Log in to get started
+              {t.landingBtn}
             </button>
           </div>
         )}

@@ -8,6 +8,7 @@ import axios from 'axios';
 import { User } from 'firebase/auth';
 import { db } from '../lib/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, getDocs } from 'firebase/firestore';
+import { translations } from '@/lib/i18n';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -17,13 +18,20 @@ interface Message {
 
 interface ChatProps {
   user?: User | null;
+  language?: 'EN' | 'HI';
 }
 
-export default function ChatInterface({ user }: ChatProps) {
+export default function ChatInterface({ user, language = 'EN' }: ChatProps) {
+  const t = translations[language];
+
+  const initialMessage = language === 'HI' 
+    ? 'नमस्ते! मैं LLA हूँ, आपका कानूनी सलाहकार। मैं आज भारतीय कानून या अनुबंध को समझने में आपकी कैसे मदद कर सकता हूँ?'
+    : 'Hello! I am LLA, your legal advisor. How can I help you understand Indian law or a contract today?';
+
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Hello! I am LLA, your legal advisor. How can I help you understand Indian law or a contract today?'
+      content: initialMessage
     }
   ]);
   const [input, setInput] = useState('');
@@ -63,7 +71,7 @@ export default function ChatInterface({ user }: ChatProps) {
     });
     setMessages([{
       role: 'assistant',
-      content: 'Hello! I am LLA, your legal advisor. How can I help you understand Indian law or a contract today?'
+      content: initialMessage
     }]);
   };
 
@@ -108,7 +116,7 @@ export default function ChatInterface({ user }: ChatProps) {
       console.error("Chat error:", error);
       const errorMsg = error.response?.data?.detail 
         ? `Error: ${error.response.data.detail}` 
-        : 'I encountered an error connecting to the server. Please try again later.';
+        : (language === 'HI' ? 'सर्वर से कनेक्ट होने में त्रुटि आई। कृपया बाद में पुनः प्रयास करें।' : 'I encountered an error connecting to the server. Please try again later.');
       const errMessage: Message = { role: 'assistant', content: errorMsg };
       if (!user) {
         setMessages(prev => [...prev, errMessage]);
@@ -127,9 +135,7 @@ export default function ChatInterface({ user }: ChatProps) {
         <div className="glassmorphism p-3 rounded-lg flex items-start gap-3 text-sm text-amber-700 dark:text-amber-300 flex-1">
           <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
           <p>
-            <strong>Disclaimer:</strong> LLA is an AI assistant to help you understand legal concepts. 
-            It is <strong>not a substitute for a licensed advocate</strong>. 
-            For high-risk or complex legal matters, please consult a professional lawyer.
+            <strong>{t.disclaimerStrong1}</strong> {language === 'HI' ? "LLA कानूनी अवधारणाओं को समझने में आपकी मदद करने के लिए एक AI सहायक है। यह" : "LLA is an AI assistant to help you understand legal concepts. It is"} <strong>{t.disclaimerStrong2}</strong>. {language === 'HI' ? "उच्च जोखिम वाले या जटिल कानूनी मामलों के लिए, कृपया एक पेशेवर वकील से परामर्श लें।" : "For high-risk or complex legal matters, please consult a professional lawyer."}
           </p>
         </div>
         {user && (
@@ -139,7 +145,7 @@ export default function ChatInterface({ user }: ChatProps) {
             title="Clear Chat History"
           >
             <Trash2 className="w-4 h-4" />
-            <span className="hidden sm:inline">Clear</span>
+            <span className="hidden sm:inline">{t.clear}</span>
           </button>
         )}
       </div>
@@ -180,7 +186,7 @@ export default function ChatInterface({ user }: ChatProps) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          placeholder="Ask a question about a contract or Indian law..."
+          placeholder={t.chatPlaceholder}
           className="w-full glassmorphism rounded-full px-6 py-4 pr-16 outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
           aria-label="Chat input"
         />
