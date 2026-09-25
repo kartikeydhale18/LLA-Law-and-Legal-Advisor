@@ -5,11 +5,14 @@ import { Upload, X, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import axios from 'axios';
 
+import { User } from 'firebase/auth';
+
 interface UploadProps {
   onUploadSuccess?: () => void;
+  user?: User | null;
 }
 
-export default function UploadDocument({ onUploadSuccess }: UploadProps) {
+export default function UploadDocument({ onUploadSuccess, user }: UploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,14 +76,13 @@ export default function UploadDocument({ onUploadSuccess }: UploadProps) {
     formData.append('file', file);
 
     try {
-      // TODO: Get actual Firebase token
-      const dummyToken = "mock_token"; 
+      const token = user ? await user.getIdToken() : "mock_token"; 
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       await axios.post(`${apiUrl}/api/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${dummyToken}`
+          'Authorization': `Bearer ${token}`
         }
       });
 

@@ -60,7 +60,18 @@ def extract_text_from_image(image_bytes: bytes, mime_type: str = "image/jpeg"):
                 prompt
             ])
             
-            return response.text
+            try:
+                return response.text
+            except ValueError:
+                # Fallback if response.text fails due to safety or multiple parts
+                text_parts = []
+                for candidate in response.candidates:
+                    for part in candidate.content.parts:
+                        if hasattr(part, 'text'):
+                            text_parts.append(part.text)
+                if text_parts:
+                    return " ".join(text_parts)
+                return "Error: Document text extraction blocked by Gemini safety filters or returned complex parts."
         except Exception as e:
             if "429" in str(e) and attempt < max_retries - 1:
                 logger.warning(f"Rate limit hit, retrying in 15 seconds... (Attempt {attempt + 1})")
@@ -84,7 +95,8 @@ def generate_answer(prompt: str, context: str = "", model_choice: str = "groq"):
         "3. Grounding: If context is provided below, base your answer ONLY on that context. "
         "If you cannot answer based on the context, explicitly state your low confidence and do not hallucinate legal facts.\n"
         "4. Always cite the specific act/section you are relying on.\n"
-        "5. Disclaimer: Conclude by reminding the user you are an AI and they should consult a licensed advocate for high-risk matters."
+        "5. Disclaimer: Conclude by reminding the user you are an AI and they should consult a licensed advocate for high-risk matters.\n"
+        "6. Concise Output: You MUST be extremely concise and restrict your output to fit within a strict 1000 token limit. Get straight to the point."
     )
     
     full_prompt = f"Context: {context}\n\nUser Question: {prompt}" if context else f"User Question: {prompt}"
@@ -98,7 +110,7 @@ def generate_answer(prompt: str, context: str = "", model_choice: str = "groq"):
                     {"role": "user", "content": full_prompt}
                 ],
                 temperature=0.1,
-                max_tokens=4096
+                max_tokens=1000
             )
             return completion.choices[0].message.content
         else:

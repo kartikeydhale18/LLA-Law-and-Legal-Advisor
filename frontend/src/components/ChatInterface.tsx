@@ -5,12 +5,18 @@ import { Send, Upload, Info } from 'lucide-react';
 import { cn } from '../lib/utils';
 import axios from 'axios';
 
+import { User } from 'firebase/auth';
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
 
-export default function ChatInterface() {
+interface ChatProps {
+  user?: User | null;
+}
+
+export default function ChatInterface({ user }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -30,10 +36,12 @@ export default function ChatInterface() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const namespace = user ? user.uid : "test_user_123";
+      
       const response = await axios.post(`${apiUrl}/api/chat`, {
         query: userMessage.content,
         use_rag: true,
-        namespace: "test_user_123"
+        namespace: namespace
       });
       
       setMessages(prev => [...prev, { role: 'assistant', content: response.data.answer }]);
