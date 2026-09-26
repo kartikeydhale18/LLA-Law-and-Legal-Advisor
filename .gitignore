@@ -31,7 +31,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# lib/ (removed to not ignore frontend/src/lib)
 lib64/
 parts/
 sdist/
