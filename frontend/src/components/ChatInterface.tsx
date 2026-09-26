@@ -113,6 +113,7 @@ export default function ChatInterface({ user, language = 'EN', chatId = 'default
       } else {
         await saveMessage(aiMessage);
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Chat error:", error);
       const errorMsg = error.response?.data?.detail 

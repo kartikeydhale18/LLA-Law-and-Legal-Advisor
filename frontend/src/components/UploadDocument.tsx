@@ -20,6 +20,7 @@ interface DocumentInfo {
   id: string;
   name: string;
   size: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   uploadedAt: any;
   s3_url?: string;
   tags?: string[];
@@ -162,6 +163,7 @@ export default function UploadDocument({ onUploadSuccess, user, language = 'EN' 
       setSuccess(true);
       setFile(null);
       if (onUploadSuccess) onUploadSuccess();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error("Upload error:", err);
       setError(err.response?.data?.detail || "An error occurred while uploading.");

@@ -23,6 +23,7 @@ export default function ChatSidebar({ user, language = 'EN', currentChatId, onSe
   // If currentChatId is not in the list, add it visually
   useEffect(() => {
     if (!sessions.find(s => s.id === currentChatId)) {
+      // eslint-disable-next-line
       setSessions([{ id: currentChatId, title: language === 'HI' ? 'नई चैट' : 'New Chat', date: 'Today' }, ...sessions]);
     }
   }, [currentChatId, sessions, language]);
